@@ -8,4 +8,25 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="Images\Cards\Creatures\Accretia\Боевой_киборг_подавления.png" />
+    <None Remove="Images\Cards\Creatures\Accretia\Осадный_киборг.png" />
+    <None Remove="Images\Cards\Creatures\Accretia\Штурмовой_юнит_Аккретии.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Lab3sem3\RFCardGame\RFCardGame.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Images\Cards\Spells\" />
+    <Folder Include="Images\Factions\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Images\Cards\Creatures\Accretia\Боевой_киборг_подавления.png" />
+    <Resource Include="Images\Cards\Creatures\Accretia\Осадный_киборг.png" />
+    <Resource Include="Images\Cards\Creatures\Accretia\Штурмовой_юнит_Аккретии.png" />
+  </ItemGroup>
+
 </Project>

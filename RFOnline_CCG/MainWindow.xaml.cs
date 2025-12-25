@@ -1,126 +1,125 @@
-﻿using System.Windows;
-using System.Windows.Controls;
+﻿using RFOnline_CCG.ViewModels;
+using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
+using System.Windows.Controls;
 
 namespace RFOnline_CCG
 {
     public partial class MainWindow : Window
     {
-        private bool _isDragging = false;
-        private Point _clickPosition;
+        private GameViewModel ViewModel => DataContext as GameViewModel;
 
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = new GameViewModel();
         }
 
-        // ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ
-        private void StartGame_Click(object sender, RoutedEventArgs e)
-        {
-            MainMenuUI.Visibility = Visibility.Collapsed;
-            NewGameScreen.Visibility = Visibility.Visible;
-        }
-
-        private void BackToMenu_Click(object sender, RoutedEventArgs e)
-        {
-            MainMenuUI.Visibility = Visibility.Collapsed;
-            LoadGameScreen.Visibility = Visibility.Visible;
-        }
-
-        private void Exit_Click(object sender, RoutedEventArgs e)
-        {
-            Application.Current.Shutdown();
-        }
-
-        // ЛОГИКА DRAG & DROP
         private void Card_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            var card = sender as FrameworkElement;
-            if (card == null) return;
+            if (sender is FrameworkElement element && element.DataContext is CardViewModel card)
+            {
+                // Снимаем выделение с других карт
+                foreach (var c in ViewModel.PlayerHand)
+                {
+                    c.IsSelected = false;
+                }
 
-            _isDragging = true;
-            _clickPosition = e.GetPosition(this);
-            card.CaptureMouse();
+                card.IsSelected = true;
+                ViewModel.SelectedCard = card;
+                ViewModel.SelectedCreature = null;
 
-            if (!(card.RenderTransform is TranslateTransform))
-                card.RenderTransform = new TranslateTransform();
+                e.Handled = true;
+            }
+        }
 
-            Panel.SetZIndex(card, 1000); // Чтобы карта была выше всех
+        private void Creature_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement element && element.DataContext is CreatureViewModel creature)
+            {
+                // Снимаем выделение с других существ
+                foreach (var c in ViewModel.PlayerField)
+                {
+                    c.IsSelected = false;
+                }
+
+                creature.IsSelected = true;
+                ViewModel.SelectedCreature = creature;
+                ViewModel.SelectedCard = null;
+
+                e.Handled = true;
+            }
         }
 
         private void Card_MouseMove(object sender, MouseEventArgs e)
         {
-            if (!_isDragging) return;
-
-            var card = sender as FrameworkElement;
-            var currentPosition = e.GetPosition(this);
-            var transform = card.RenderTransform as TranslateTransform;
-
-            if (transform != null)
+            if (e.LeftButton == MouseButtonState.Pressed)
             {
-                transform.X = currentPosition.X - _clickPosition.X;
-                transform.Y = currentPosition.Y - _clickPosition.Y;
-            }
-
-            // Визуальная подсветка зоны при наведении
-            Point dropPoint = e.GetPosition(DropZone);
-            bool isOver = dropPoint.X >= 0 && dropPoint.X <= DropZone.ActualWidth &&
-                          dropPoint.Y >= 0 && dropPoint.Y <= DropZone.ActualHeight;
-
-            DropZone.Opacity = isOver ? 0.6 : 0.2;
-        }
-
-        private void Card_MouseUp(object sender, MouseButtonEventArgs e)
-        {
-            if (!_isDragging) return;
-
-            var card = sender as FrameworkElement;
-            _isDragging = false;
-            card.ReleaseMouseCapture();
-
-            Point dropPoint = e.GetPosition(DropZone);
-            bool isInside = dropPoint.X >= 0 && dropPoint.X <= DropZone.ActualWidth &&
-                            dropPoint.Y >= 0 && dropPoint.Y <= DropZone.ActualHeight;
-
-            if (isInside)
-            {
-                // Если бросили в зону - карта "исчезает" из руки (разыгрывается)
-                card.Visibility = Visibility.Collapsed;
-                DropZone.Opacity = 0.2;
-                MessageBox.Show("ЮНИТ РАЗВЕРНУТ!");
-            }
-            else
-            {
-                // Возвращаем на место
-                var transform = card.RenderTransform as TranslateTransform;
-                transform.X = 0;
-                transform.Y = 0;
+                if (sender is FrameworkElement element && element.DataContext is CardViewModel card)
+                {
+                    // Начинаем перетаскивание
+                    DragDrop.DoDragDrop(element, card, DragDropEffects.Move);
+                }
             }
         }
 
-        private void BtnStartBoardGame_Click(object sender, RoutedEventArgs e)
+        private void DropZone_DragEnter(object sender, DragEventArgs e)
         {
-            NewGameScreen.Visibility = Visibility.Collapsed;
-            GameBoardUI.Visibility = Visibility.Visible;
+            if (e.Data.GetDataPresent(typeof(CardViewModel)))
+            {
+                DropZone.Opacity = 0.5;
+                DropZone.BorderThickness = new Thickness(3);
+            }
         }
 
-        private void BtnNewGameCancel_Click(object sender, RoutedEventArgs e)
+        private void DropZone_DragLeave(object sender, DragEventArgs e)
         {
-            NewGameScreen.Visibility = Visibility.Collapsed;
-            MainMenuUI.Visibility = Visibility.Visible;
+            DropZone.Opacity = 0.2;
+            DropZone.BorderThickness = new Thickness(1);
         }
 
-        private void BtnLoadGameCancel_Click(object sender, RoutedEventArgs e)
+        private void DropZone_Drop(object sender, DragEventArgs e)
         {
-            LoadGameScreen.Visibility = Visibility.Collapsed;
-            MainMenuUI.Visibility = Visibility.Visible;
+            DropZone.Opacity = 0.2;
+            DropZone.BorderThickness = new Thickness(1);
+
+            if (e.Data.GetData(typeof(CardViewModel)) is CardViewModel card)
+            {
+                ViewModel.PlayCardCommand.Execute(null);
+            }
         }
 
-        private void BtnLoadGameStart_Click(object sender, RoutedEventArgs e)
+        // Дополнительные методы для обработки клавиш
+        protected override void OnKeyDown(KeyEventArgs e)
         {
-            LoadGameScreen.Visibility = Visibility.Collapsed;
-            GameBoardUI.Visibility = Visibility.Visible;
+            base.OnKeyDown(e);
+
+            if (ViewModel == null) return;
+
+            switch (e.Key)
+            {
+                case Key.Escape:
+                    if (ViewModel.PauseMenuVisibility == Visibility.Visible)
+                        ViewModel.ResumeGameCommand.Execute(null);
+                    else if (ViewModel.GameBoardVisibility == Visibility.Visible)
+                        ViewModel.ShowPauseMenuCommand.Execute(null);
+                    break;
+
+                case Key.Enter:
+                    if (ViewModel.GameBoardVisibility == Visibility.Visible)
+                        ViewModel.EndTurnCommand.Execute(null);
+                    break;
+
+                case Key.Space:
+                    if (ViewModel.SelectedCard != null)
+                        ViewModel.PlayCardCommand.Execute(null);
+                    break;
+
+                case Key.A:
+                    if (ViewModel.SelectedCreature != null)
+                        ViewModel.AttackCommand.Execute(null);
+                    break;
+            }
         }
     }
 }

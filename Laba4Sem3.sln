@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36603.0 d17.14
+VisualStudioVersion = 17.14.36603.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RFOnline_CCG", "RFOnline_CCG\RFOnline_CCG.csproj", "{3D9DD81E-B1D2-472E-A0EF-2A101DA49CF8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RFCardGame", "..\Lab3sem3\RFCardGame\RFCardGame.csproj", "{4F4EEB42-28B2-2045-8BCE-9B810C65729F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{3D9DD81E-B1D2-472E-A0EF-2A101DA49CF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3D9DD81E-B1D2-472E-A0EF-2A101DA49CF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D9DD81E-B1D2-472E-A0EF-2A101DA49CF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4F4EEB42-28B2-2045-8BCE-9B810C65729F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4F4EEB42-28B2-2045-8BCE-9B810C65729F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4F4EEB42-28B2-2045-8BCE-9B810C65729F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4F4EEB42-28B2-2045-8BCE-9B810C65729F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
