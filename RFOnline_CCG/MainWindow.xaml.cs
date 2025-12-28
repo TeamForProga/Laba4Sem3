@@ -363,56 +363,6 @@ namespace RFOnline_CCG
             DropZone.Opacity = isOver ? 0.6 : 0.2;
             DropZone.BorderBrush = isOver ? Brushes.Lime : Brushes.Cyan;
         }
-
-        private void Card_MouseUp(object sender, MouseButtonEventArgs e)
-        {
-            if (!_isDragging) return;
-
-            var border = sender as Border;
-            _isDragging = false;
-            border.ReleaseMouseCapture();
-
-            if (border?.Tag is object[] data)
-            {
-                var gameCard = data[0] as ICard;
-                var overlay = data[1] as Grid;
-
-                // Удаляем overlay с клоном
-                if (overlay != null && MainGrid.Children.Contains(overlay))
-                {
-                    MainGrid.Children.Remove(overlay);
-                }
-
-                Point dropPoint = e.GetPosition(DropZone);
-                bool isInside = dropPoint.X >= 0 && dropPoint.X <= DropZone.ActualWidth &&
-                                dropPoint.Y >= 0 && dropPoint.Y <= DropZone.ActualHeight;
-
-                if (isInside && gameCard is ICreatureCard creature)
-                {
-                    bool success = _viewModel.GameEngine.PlayCreatureCard(creature);
-                    if (success)
-                    {
-                        _viewModel.UpdateAll();
-                        ShowGameMessage($"{creature.Name} развернут!");
-                    }
-                    else
-                    {
-                        ShowGameMessage("Нельзя разыграть эту карту!");
-                    }
-                }
-                else if (isInside && gameCard is ISpellCard spell)
-                {
-                    ShowGameMessage("Выберите цель для заклинания");
-                }
-
-                // Восстанавливаем Tag
-                border.Tag = gameCard;
-            }
-
-            DropZone.Opacity = 0.2;
-            DropZone.BorderBrush = Brushes.Cyan;
-        }
-
    
         private void BtnEndTurn_Click(object sender, RoutedEventArgs e)
         {
@@ -522,16 +472,34 @@ namespace RFOnline_CCG
             }
         }
 
+        // Добавим метод для игры артефактом
         private void PlayArtifactCard(IArtifactCard artifact)
         {
             try
             {
+                // Простая проверка
+                if (artifact.Cost > _viewModel.PlayerEnergy)
+                {
+                    ShowGameMessage($"Недостаточно энергии! Нужно: {artifact.Cost}");
+                    return;
+                }
+
+                // Проверяем, не слишком ли много артефактов
+                if (_viewModel.PlayerArtifacts.Count >= 5) // Лимит 5 артефактов
+                {
+                    ShowGameMessage("Слишком много артефактов! Максимум 5.");
+                    return;
+                }
+
                 bool success = _viewModel.GameEngine.PlayArtifactCard(artifact);
                 if (success)
                 {
                     ShowGameMessage($"Артефакт {artifact.Name} активирован!");
                     _viewModel.UpdateAll();
+
+                    // Сбрасываем выделение карты
                     _viewModel.SelectedHandCard = null;
+                    _viewModel.OnPropertyChanged(nameof(_viewModel.SelectedHandCard));
                 }
                 else
                 {
@@ -543,7 +511,62 @@ namespace RFOnline_CCG
                 ShowGameMessage($"Ошибка: {ex.Message}");
             }
         }
+        // Обновим обработчик карт
+        private void Card_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (!_isDragging) return;
 
+            var border = sender as Border;
+            _isDragging = false;
+            border?.ReleaseMouseCapture();
+
+            if (border?.Tag is object[] data)
+            {
+                var gameCard = data[0] as ICard;
+                var overlay = data[1] as Grid;
+
+                // Удаляем overlay с клоном
+                if (overlay != null && MainGrid.Children.Contains(overlay))
+                {
+                    MainGrid.Children.Remove(overlay);
+                }
+
+                Point dropPoint = e.GetPosition(DropZone);
+                bool isInside = dropPoint.X >= 0 && dropPoint.X <= DropZone.ActualWidth &&
+                                dropPoint.Y >= 0 && dropPoint.Y <= DropZone.ActualHeight;
+
+                if (isInside && gameCard is ICreatureCard creature)
+                {
+                    bool success = _viewModel.GameEngine.PlayCreatureCard(creature);
+                    if (success)
+                    {
+                        _viewModel.UpdateAll();
+                        ShowGameMessage($"{creature.Name} развернут!");
+                    }
+                    else
+                    {
+                        ShowGameMessage("Нельзя разыграть эту карту!");
+                    }
+                }
+                else if (isInside && gameCard is ISpellCard spell)
+                {
+                    // ВЫЗЫВАЕМ МЕТОД ДЛЯ ЗАКЛИНАНИЙ
+                    HandleSpellCard(spell);
+                }
+                else if (isInside && gameCard is IArtifactCard artifact)
+                {
+                    // ПРОСТОЙ ВЫЗОВ - артефакт активируется сразу
+                    PlayArtifactCard(artifact);
+                    _viewModel.UpdateAll();
+                }
+
+                // Восстанавливаем Tag
+                border.Tag = gameCard;
+            }
+
+            DropZone.Opacity = 0.2;
+            DropZone.BorderBrush = Brushes.Cyan;
+        }
         private void PlaySpellCard(ISpellCard spell)
         {
             if (spell.TargetType == "SingleTarget")
@@ -653,6 +676,58 @@ namespace RFOnline_CCG
             }
         }
 
+        // Добавим этот метод после PlayArtifactCard
+        private void HandleSpellCard(ISpellCard spell)
+        {
+            // Простая обработка заклинаний
+            if (spell.TargetType == "SingleTarget")
+            {
+                if (spell.Subtype == SpellSubtype.Healing || spell.Subtype == SpellSubtype.Buff)
+                {
+                    // Для лечения/баффа нужно выбрать свое существо
+                    if (_viewModel.SelectedPlayerCreature == null)
+                    {
+                        ShowGameMessage($"Выберите свое существо для {spell.Name}");
+                        return;
+                    }
+
+                    bool success = _viewModel.GameEngine.PlaySpellCard(spell, _viewModel.SelectedPlayerCreature);
+                    if (success)
+                    {
+                        ShowGameMessage($"{spell.Name} применено к {_viewModel.SelectedPlayerCreature.Name}");
+                        _viewModel.UpdateAll();
+                        _viewModel.SelectedPlayerCreature = null;
+                    }
+                }
+                else if (spell.Subtype == SpellSubtype.Attack)
+                {
+                    // Для атаки нужно выбрать существо противника
+                    if (_viewModel.SelectedOpponentCreature == null)
+                    {
+                        ShowGameMessage($"Выберите существо противника для {spell.Name}");
+                        return;
+                    }
+
+                    bool success = _viewModel.GameEngine.PlaySpellCard(spell, _viewModel.SelectedOpponentCreature);
+                    if (success)
+                    {
+                        ShowGameMessage($"{spell.Name} наносит урон {_viewModel.SelectedOpponentCreature.Name}");
+                        _viewModel.UpdateAll();
+                        _viewModel.SelectedOpponentCreature = null;
+                    }
+                }
+            }
+            else
+            {
+                // Массовые заклинания (без цели)
+                bool success = _viewModel.GameEngine.PlaySpellCard(spell, null);
+                if (success)
+                {
+                    ShowGameMessage($"{spell.Name} применено!");
+                    _viewModel.UpdateAll();
+                }
+            }
+        }
         // МЕТОДЫ ДЛЯ ОТОБРАЖЕНИЯ СООБЩЕНИЙ
         private void ShowGameMessage(string message)
         {

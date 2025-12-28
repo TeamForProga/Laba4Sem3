@@ -1,9 +1,9 @@
 ﻿// TypeToVisibilityConverter.cs (обновленный)
+using RFCardGame.Core;
 using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
-using RFCardGame.Core;
 
 namespace RFOnline_CCG
 {

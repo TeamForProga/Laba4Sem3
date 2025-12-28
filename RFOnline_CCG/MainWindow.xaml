@@ -18,6 +18,7 @@
         <local:StateToColorConverter x:Key="StateToColorConverter"/>
         <local:SelectedToBorderBrushConverter x:Key="SelectedToBorderBrushConverter"/>
 
+
         <!-- Цвета -->
         <Color x:Key="NeonColor">#00F2FF</Color>
         <SolidColorBrush x:Key="NeonBrush" Color="{StaticResource NeonColor}"/>
@@ -619,43 +620,6 @@
 
                         <!-- ЛЕВАЯ ПАНЕЛЬ: ИНФОРМАЦИЯ ИГРОКА -->
                         <StackPanel Grid.Column="0" VerticalAlignment="Bottom" Margin="20">
-                            <!-- В StackPanel Grid.Column="0" (информация игрока) добавьте: -->
-                            <Border Margin="0,20,0,0" 
-        Background="#1A222D" 
-        Padding="10" 
-        CornerRadius="5"
-        BorderBrush="{StaticResource NeonCyan}" 
-        BorderThickness="1">
-                                <StackPanel>
-                                    <TextBlock Text="АКТИВНЫЕ АРТЕФАКТЫ" 
-                   Foreground="{StaticResource NeonCyan}" 
-                   FontSize="12" 
-                   FontWeight="Bold"
-                   Margin="0,0,0,5"/>
-
-                                    <ItemsControl ItemsSource="{Binding PlayerArtifacts}"
-                      Height="100">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Background="#2A3A4A" 
-                            CornerRadius="3" 
-                            Margin="0,2" 
-                            Padding="5">
-                                                    <TextBlock Text="{Binding Name}" 
-                                   Foreground="White" 
-                                   FontSize="10"
-                                   TextWrapping="Wrap"/>
-                                                </Border>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-
-                                    <TextBlock Text="{Binding PlayerArtifacts.Count, StringFormat='Всего: {0}'}" 
-                   Foreground="#666" 
-                   FontSize="10" 
-                   Margin="0,5,0,0"/>
-                                </StackPanel>
-                            </Border>
                             <Border Background="#1A222D" Padding="15" CornerRadius="5" 
                     BorderBrush="{StaticResource NeonCyan}" BorderThickness="1">
                                 <StackPanel>
