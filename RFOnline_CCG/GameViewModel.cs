@@ -37,6 +37,33 @@ namespace RFOnline_CCG
         public int PlayerHealth { get; set; }
         public int PlayerEnergy { get; set; }
         public int PlayerMaxEnergy { get; set; }
+        public string AttackInfo
+        {
+            get
+            {
+                if (SelectedPlayerCreature == null)
+                    return "Выберите существо для атаки";
+
+                if (SelectedOpponentCreature == null)
+                    return $"Готово: {SelectedPlayerCreature.Name} → выберите цель";
+
+                return $"Атака: {SelectedPlayerCreature.Name} → {SelectedOpponentCreature.Name}";
+            }
+        }
+
+        public string DirectAttackInfo
+        {
+            get
+            {
+                if (SelectedPlayerCreature == null || GameEngine == null)
+                    return "";
+
+                if (GameEngine.OpponentPlayer.GetAliveCreatureCount() == 0)
+                    return $"✓ Можно атаковать игрока напрямую!";
+
+                return $"Существ противника: {GameEngine.OpponentPlayer.GetAliveCreatureCount()}";
+            }
+        }
         public int PlayerDeckCount { get; set; }
 
         public string OpponentName { get; set; }
@@ -120,19 +147,33 @@ namespace RFOnline_CCG
             return success;
         }
 
-        public void AttackPlayerDirectly()
-        {
-            if (SelectedPlayerCreature != null)
-            {
-                bool success = GameEngine.AttackPlayerDirectly(SelectedPlayerCreature);
-                if (success) UpdateAll();
-            }
-        }
 
         public void EndTurn()
         {
             GameEngine.EndTurn();
             UpdateAll();
+        }
+        public bool CanAttackPlayerDirectly()
+        {
+            if (GameEngine == null || SelectedPlayerCreature == null)
+                return false;
+
+            // Проверяем, что у противника нет живых существ
+            return !GameEngine.OpponentPlayer.Field.Any(c => c.IsAlive);
+        }
+
+        public void AttackPlayerDirectly()
+        {
+            if (!CanAttackPlayerDirectly() || SelectedPlayerCreature == null)
+                return;
+
+            bool success = GameEngine.AttackPlayerDirectly(SelectedPlayerCreature);
+            if (success)
+            {
+                UpdateAll();
+                SelectedPlayerCreature = null;
+                SelectedOpponentCreature = null;
+            }
         }
 
         public void UpdateAll()

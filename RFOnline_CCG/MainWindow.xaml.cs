@@ -251,9 +251,9 @@ namespace RFOnline_CCG
         }
         // Метод для подсветки карты
 
-// Метод для сброса подсветки всех карт
+        // Метод для сброса подсветки всех карт
 
-// Вспомогательный метод для поиска дочерних элементов
+        // Вспомогательный метод для поиска дочерних элементов
         private void Creature_MouseDown(object sender, MouseButtonEventArgs e)
         {
             var border = sender as Border;
@@ -265,12 +265,20 @@ namespace RFOnline_CCG
                 bool isPlayerCreature = _viewModel.PlayerField.Contains(gameCreature);
                 bool isOpponentCreature = _viewModel.OpponentField.Contains(gameCreature);
 
-                // Подсветка выбранного существа
                 if (isPlayerCreature)
                 {
                     _viewModel.SelectedPlayerCreature = gameCreature;
                     HighlightCreature(border, "Cyan");
-                    ShowGameMessage($"Выбрано: {gameCreature.Name}");
+
+                    // Проверяем возможность прямой атаки
+                    if (_viewModel.GameEngine.OpponentPlayer.GetAliveCreatureCount() == 0)
+                    {
+                        ShowGameMessage($"Выбрано: {gameCreature.Name} ✓ Можно атаковать игрока!");
+                    }
+                    else
+                    {
+                        ShowGameMessage($"Выбрано: {gameCreature.Name} - выберите цель для атаки");
+                    }
                 }
                 else if (isOpponentCreature)
                 {
@@ -283,7 +291,6 @@ namespace RFOnline_CCG
                 _viewModel.OnPropertyChanged(nameof(_viewModel.SelectedOpponentCreature));
             }
         }
-
         // Метод для подсветки существа
         private void HighlightCreature(Border creatureBorder, string color)
         {
@@ -588,7 +595,64 @@ namespace RFOnline_CCG
                 }
             }
         }
-    
+        private void BtnDirectAttack_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_viewModel == null || _viewModel.GameEngine == null)
+                {
+                    ShowGameMessage("Игра не запущена");
+                    return;
+                }
+
+                if (_viewModel.SelectedPlayerCreature == null)
+                {
+                    ShowGameMessage("Выберите свое существо для атаки");
+                    return;
+                }
+
+                // Проверяем, есть ли у противника существа
+                if (_viewModel.GameEngine.OpponentPlayer.GetAliveCreatureCount() > 0)
+                {
+                    ShowGameMessage("Сначала уничтожьте всех существ противника!");
+                    return;
+                }
+
+                // Проверяем состояние существа
+                if (!_viewModel.SelectedPlayerCreature.IsAlive)
+                {
+                    ShowGameMessage("Выбранное существо мертво!");
+                    _viewModel.SelectedPlayerCreature = null;
+                    return;
+                }
+
+                if (_viewModel.SelectedPlayerCreature.State != CreatureState.Active)
+                {
+                    ShowGameMessage("Это существо не может атаковать сейчас!");
+                    return;
+                }
+
+                // Выполняем прямую атаку
+                bool success = _viewModel.GameEngine.AttackPlayerDirectly(
+                    _viewModel.SelectedPlayerCreature);
+
+                if (success)
+                {
+                    ShowGameMessage($"{_viewModel.SelectedPlayerCreature.Name} атакует {_viewModel.GameEngine.OpponentPlayer.Name}!");
+                    _viewModel.UpdateAll();
+                    _viewModel.SelectedPlayerCreature = null;
+                }
+                else
+                {
+                    ShowGameMessage("Прямая атака не удалась!");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowGameMessage($"Ошибка: {ex.Message}");
+            }
+        }
+
         // МЕТОДЫ ДЛЯ ОТОБРАЖЕНИЯ СООБЩЕНИЙ
         private void ShowGameMessage(string message)
         {
