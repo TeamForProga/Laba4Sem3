@@ -2,9 +2,9 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.IO;
 using System.Windows.Media.Effects;
 
 namespace RFOnline_CCG
@@ -14,7 +14,6 @@ namespace RFOnline_CCG
         private GameViewModel _viewModel;
         private bool _isDragging = false;
         private Point _clickPosition;
-        private string _selectedSaveFile;
 
         public MainWindow()
         {
@@ -88,26 +87,160 @@ namespace RFOnline_CCG
             return Faction.Neutral;
         }
 
-        // ЗАГРУЗИТЬ ИГРУ
+        // ЗАГРУЗИТЬ ИГРУ - клик по кнопке "Загрузить игру"
+        private void BtnLoadGame_Click(object sender, RoutedEventArgs e)
+        {
+            MainMenuUI.Visibility = Visibility.Collapsed;
+            LoadGameScreen.Visibility = Visibility.Visible;
+            
+            // Загружаем список сохранений
+            LoadSaveGamesList();
+        }
+
+        private void LoadSaveGamesList()
+        {
+            try
+            {
+                SaveGamesList.Items.Clear();
+                var saveGames = _viewModel.GetSaveGames();
+                
+                if (!saveGames.Any())
+                {
+                    // Показываем заглушку, если сохранений нет
+                    SaveGamesList.Items.Add(new 
+                    {
+                        SaveName = "Сохранений не найдено",
+                        Date = "",
+                        Factions = "Создайте новую игру",
+                        FilePath = ""
+                    });
+                    return;
+                }
+
+                foreach (var save in saveGames)
+                {
+                    SaveGamesList.Items.Add(new 
+                    {
+                        SaveName = save.SaveName,
+                        Date = save.Date.ToString("dd.MM.yyyy HH:mm"),
+                        Factions = save.Factions,
+                        Players = save.Players,
+                        Turn = $"Ход: {save.CurrentTurn}",
+                        FilePath = save.FilePath
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowGameMessage($"Ошибка загрузки списка: {ex.Message}");
+            }
+        }
+
         private void SaveGame_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            _selectedSaveFile = "Saves/AUTO_SAVE_01.json";
+            if (SaveGamesList.SelectedItem != null)
+            {
+                dynamic selectedItem = SaveGamesList.SelectedItem;
+                if (selectedItem.FilePath is string filePath && !string.IsNullOrEmpty(filePath))
+                {
+                    // Проверяем, что это не заглушка
+                    if (selectedItem.SaveName == "Сохранений не найдено")
+                    {
+                        SaveGamesList.SelectedItem = null;
+                        return;
+                    }
+                    
+                    // Сохраняем путь к выбранному файлу
+                    SaveGamesList.Tag = filePath;
+                }
+            }
         }
 
         private void BtnLoadGameStart_Click(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrEmpty(_selectedSaveFile))
+            if (SaveGamesList.Tag is string selectedFilePath && File.Exists(selectedFilePath))
             {
-                _viewModel.LoadGame(_selectedSaveFile);
-                LoadGameScreen.Visibility = Visibility.Collapsed;
-                GameBoardUI.Visibility = Visibility.Visible;
+                bool success = _viewModel.LoadGame(selectedFilePath);
+                if (success)
+                {
+                    LoadGameScreen.Visibility = Visibility.Collapsed;
+                    GameBoardUI.Visibility = Visibility.Visible;
+                    ShowGameMessage("Игра успешно загружена!");
+                }
             }
             else
             {
-                ShowGameMessage("Выберите сохранение для загрузки");
+                ShowGameMessage("Выберите сохранение для загрузки!");
             }
         }
 
+        
+        // СОХРАНИТЬ ИГРУ
+        private void BtnSaveGame_Click(object sender, RoutedEventArgs e)
+        {
+            if (_viewModel.GameEngine == null)
+            {
+                ShowGameMessage("Игра не запущена!");
+                return;
+            }
+
+            var dialog = new SaveGameDialog();
+            if (dialog.ShowDialog() == true && !string.IsNullOrWhiteSpace(dialog.SaveName))
+            {
+                _viewModel.SaveGame(dialog.SaveName);
+                ShowGameMessage($"Игра сохранена: {dialog.SaveName}");
+            }
+        }
+
+        // Кнопки отмены
+        private void BtnNewGameCancel_Click(object sender, RoutedEventArgs e)
+        {
+            NewGameScreen.Visibility = Visibility.Collapsed;
+            MainMenuUI.Visibility = Visibility.Visible;
+        }
+
+        private void BtnLoadGameCancel_Click(object sender, RoutedEventArgs e)
+        {
+            LoadGameScreen.Visibility = Visibility.Collapsed;
+            MainMenuUI.Visibility = Visibility.Visible;
+        }
+        // ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ
+        private void ShowGameOver()
+        {
+            if (_viewModel.GameEngine?.Winner == null) return;
+
+            // Обновляем текст
+            GameOverTitle.Text = "ПОБЕДА!";
+            WinnerText.Text = $"{_viewModel.GameEngine.Winner.Name} побеждает!";
+            GameStats.Text = $"Ходов: {_viewModel.GameEngine.CurrentTurn}\n" +
+                             $"Здоровье: {_viewModel.GameEngine.Winner.Health}";
+
+            GameSummary.Text = $"Игра завершена. {_viewModel.GameEngine.Winner.Name} показал отличный результат!";
+
+            // Показываем экран
+            GameBoardUI.Visibility = Visibility.Collapsed;
+            GameOverScreen.Visibility = Visibility.Visible;
+        }
+
+        private void NewGameAfterEnd_Click(object sender, RoutedEventArgs e)
+        {
+            GameOverScreen.Visibility = Visibility.Collapsed;
+            NewGameScreen.Visibility = Visibility.Visible;
+        }
+
+        // В BtnEndTurn_Click добавьте проверку окончания игры
+        private void BtnEndTurn_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.EndTurn();
+            ShowGameMessage("Ход завершен");
+
+            // Проверяем конец игры
+            if (_viewModel.GameEngine?.IsGameOver == true)
+            {
+                ShowGameOver();
+            }
+        }
+        
         private void Card_MouseDown(object sender, MouseButtonEventArgs e)
         {
             var border = sender as Border;
@@ -362,12 +495,6 @@ namespace RFOnline_CCG
 
             DropZone.Opacity = isOver ? 0.6 : 0.2;
             DropZone.BorderBrush = isOver ? Brushes.Lime : Brushes.Cyan;
-        }
-   
-        private void BtnEndTurn_Click(object sender, RoutedEventArgs e)
-        {
-            _viewModel.EndTurn();
-            ShowGameMessage("Ход завершен");
         }
 
         private void BtnAttack_Click(object sender, RoutedEventArgs e)
@@ -817,11 +944,6 @@ namespace RFOnline_CCG
                 HandScrollViewer.ScrollToHorizontalOffset(HandScrollViewer.HorizontalOffset - 150);
             }
         }
-
-        private void BtnSaveGame_Click(object sender, RoutedEventArgs e)
-        {
-            
-        }
         private void ScrollRight_Click(object sender, RoutedEventArgs e)
         {
             if (HandScrollViewer != null)
@@ -830,16 +952,5 @@ namespace RFOnline_CCG
             }
         }
 
-        private void BtnNewGameCancel_Click(object sender, RoutedEventArgs e)
-        {
-            NewGameScreen.Visibility = Visibility.Collapsed;
-            MainMenuUI.Visibility = Visibility.Visible;
-        }
-
-        private void BtnLoadGameCancel_Click(object sender, RoutedEventArgs e)
-        {
-            LoadGameScreen.Visibility = Visibility.Collapsed;
-            MainMenuUI.Visibility = Visibility.Visible;
-        }
     }
 }

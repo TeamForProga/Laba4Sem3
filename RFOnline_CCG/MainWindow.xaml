@@ -17,6 +17,12 @@
         <local:TypeToVisibilityConverter x:Key="TypeToVisibilityConverter"/>
         <local:StateToColorConverter x:Key="StateToColorConverter"/>
         <local:SelectedToBorderBrushConverter x:Key="SelectedToBorderBrushConverter"/>
+        <!-- В ресурсы окна -->
+        <local:ImagePathConverter x:Key="ImagePathConverter"/>
+
+
+        <!-- В Image тег добавим Fallback -->
+
 
 
         <!-- Цвета -->
@@ -42,6 +48,15 @@
         </Style>
         <DataTemplate x:Key="CardToolTipTemplate">
             <StackPanel>
+                <!-- Изображение карты в ToolTip -->
+                <Border Height="150" 
+                Margin="0,0,0,10"
+                CornerRadius="3"
+                ClipToBounds="True">
+                    <Image Source="{Binding ImagePath, Converter={StaticResource ImagePathConverter}}"
+                   Stretch="UniformToFill"/>
+                </Border>
+
                 <!-- Заголовок -->
                 <Border Background="#2A3A4A" CornerRadius="3" Padding="5" Margin="0,0,0,5">
                     <StackPanel Orientation="Horizontal">
@@ -65,7 +80,6 @@
                         </Border>
                     </StackPanel>
                 </Border>
-
                 <!-- Фракция и тип -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                     <Border Background="#3A4A5A" CornerRadius="3" Padding="3,2">
@@ -81,14 +95,14 @@
                 </StackPanel>
 
                 <!-- Статистика для существ -->
-                <StackPanel Visibility="{Binding Type, Converter={StaticResource TypeToVisibilityConverter}}"
+                <StackPanel Visibility="{Binding Type, Converter={StaticResource TypeToVisibilityConverter}, ConverterParameter=creature}"
                     Orientation="Horizontal"
                     HorizontalAlignment="Center"
                     Margin="0,0,0,10">
                     <Border Background="#CC3333" CornerRadius="3" Padding="10,5" Margin="0,0,5,0">
                         <StackPanel>
                             <TextBlock Text="АТАКА" Foreground="White" FontSize="9" HorizontalAlignment="Center"/>
-                            <TextBlock Text="{Binding Attack}" 
+                            <TextBlock Text="{Binding Attack, FallbackValue=0}" 
                                Foreground="White" 
                                FontSize="18" 
                                FontWeight="Bold"
@@ -143,7 +157,7 @@
                 <StackPanel Visibility="{Binding Type, Converter={StaticResource TypeToVisibilityConverter}, ConverterParameter=spell}">
                     <TextBlock Text="ТИП ЗАКЛИНАНИЯ:" Foreground="#666" FontSize="9" Margin="0,5,0,2"/>
                     <Border Background="#2A3A4A" CornerRadius="3" Padding="5">
-                        <TextBlock Text="{Binding Subtype}" 
+                        <TextBlock Text="{Binding Subtype, FallbackValue=-}" 
                            Foreground="#AAA" 
                            FontSize="10"/>
                     </Border>
@@ -342,35 +356,38 @@
             <Border x:Name="CardBorder" 
             Width="110" Height="160" 
             Margin="5" 
-            Background="#1A2A3A"
+            Background="Transparent"
             BorderBrush="{StaticResource NeonCyan}"
             BorderThickness="1.5"
             CornerRadius="6"
             Cursor="Hand"
-            ClipToBounds="False"
+            ClipToBounds="True"
             MouseDown="Card_MouseDown"
             MouseMove="Card_MouseMove"
             MouseUp="Card_MouseUp"
             Tag="{Binding}">
 
-                <!-- Подробный ToolTip -->
+                <!-- ToolTip ДОЛЖЕН быть здесь, в Border.ToolTip -->
                 <Border.ToolTip>
-                    <ToolTip Style="{StaticResource DetailedToolTipStyle}">
+                    <ToolTip Style="{StaticResource DetailedToolTipStyle}"
+                     Placement="MousePoint"
+                     HorizontalOffset="20"
+                     VerticalOffset="-20">
                         <ContentControl Content="{Binding}" 
-                                ContentTemplate="{StaticResource CardToolTipTemplate}"/>
+                              ContentTemplate="{StaticResource CardToolTipTemplate}"/>
                     </ToolTip>
                 </Border.ToolTip>
 
-                <Border.Effect>
-                    <DropShadowEffect x:Name="CardGlow" 
-                              BlurRadius="10" 
-                              ShadowDepth="0" 
-                              Color="#00F2FF" 
-                              Opacity="0.3"/>
-                </Border.Effect>
+                <!-- Основное содержимое карты -->
+                <Grid>
+                    <!-- Фоновое изображение карты -->
+                    <Image Source="{Binding ImagePath, Converter={StaticResource ImagePathConverter}}"
+                   Stretch="UniformToFill"
+                   Opacity="0.9"/>
 
-                <!-- Контент карты (упрощенный, так как подробности в ToolTip) -->
-                <Grid ClipToBounds="False">
+                    <!-- Полупрозрачный оверлей для текста -->
+                    <Border Background="#801A2A3A"/>
+
                     <!-- Стоимость -->
                     <Border Width="24" Height="24" 
                     CornerRadius="12" 
@@ -386,28 +403,17 @@
                            VerticalAlignment="Center"/>
                     </Border>
 
-                    <!-- Название (сокращенное) -->
-                    <TextBlock Text="{Binding Name}" 
-                       Foreground="White" 
-                       FontSize="11" 
-                       FontWeight="Bold"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Top"
-                       Margin="5,30,5,0"
-                       TextWrapping="Wrap"
-                       TextTrimming="CharacterEllipsis"
-                       MaxHeight="40"/>
-
                     <!-- Статистика для существ -->
                     <StackPanel Visibility="{Binding Type, Converter={StaticResource TypeToVisibilityConverter}}"
                         VerticalAlignment="Bottom"
                         HorizontalAlignment="Center"
-                        Margin="0,0,0,20">
+                        Margin="0,0,0,10">
                         <Grid>
                             <Border Background="#CC3333" 
                             Width="30" 
                             Height="26"
-                            CornerRadius="3,0,0,3">
+                            CornerRadius="3,0,0,3"
+                            Opacity="0.8">
                                 <TextBlock Text="{Binding Attack}" 
                                    Foreground="White" 
                                    FontWeight="Bold"
@@ -419,7 +425,8 @@
                             Width="30" 
                             Height="26"
                             CornerRadius="0,3,3,0"
-                            HorizontalAlignment="Right">
+                            HorizontalAlignment="Right"
+                            Opacity="0.8">
                                 <TextBlock Text="{Binding CurrentHealth}" 
                                    Foreground="White" 
                                    FontWeight="Bold"
@@ -429,133 +436,84 @@
                             </Border>
                         </Grid>
                     </StackPanel>
-
-                    <!-- Иконка типа -->
-                    <Border Background="#202020"
-                    CornerRadius="3"
-                    Width="45" Height="22"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Bottom"
-                    Margin="0,0,0,15">
-                        <TextBlock Text="{Binding Type}" 
-                           Foreground="#AAA"
-                           FontSize="10"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"/>
-                    </Border>
                 </Grid>
             </Border>
         </DataTemplate>
         <!-- DataTemplate для существа на поле -->
         <DataTemplate x:Key="CreatureFieldTemplate">
             <Border x:Name="CreatureBorder"
-            Width="130" Height="180"
-            Margin="8"
-            Background="#152035"
-            BorderBrush="#33FFFFFF"
-            BorderThickness="1"
-            CornerRadius="5"
-            Cursor="Hand"
-            ClipToBounds="False"
-            MouseDown="Creature_MouseDown"
-            Tag="{Binding}">
+                Width="130" Height="180"
+                Margin="8"
+                Background="Transparent" 
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                CornerRadius="5"
+                Cursor="Hand"
+                ClipToBounds="True"
+                MouseDown="Creature_MouseDown"
+                Tag="{Binding}">
 
-                <!-- Подробный ToolTip -->
-                <Border.ToolTip>
-                    <ToolTip Style="{StaticResource DetailedToolTipStyle}">
-                        <ContentControl Content="{Binding}" 
-                                ContentTemplate="{StaticResource CardToolTipTemplate}"/>
-                    </ToolTip>
-                </Border.ToolTip>
+                <Grid>
+                    <!-- Изображение существа -->
+                    <Image Source="{Binding ImagePath, Converter={StaticResource ImagePathConverter}}"
+                       Stretch="UniformToFill"
+                       Opacity="0.9"/>
 
-                <Border.Effect>
-                    <DropShadowEffect x:Name="CreatureGlow" 
-                              BlurRadius="5" 
-                              ShadowDepth="0" 
-                              Color="#00F2FF" 
-                              Opacity="0.2"/>
-                </Border.Effect>
+                    <!-- Полупрозрачный оверлей -->
+                    <Border Background="#80152035"/>
 
-                <!-- Контент существа (упрощенный) -->
-                <StackPanel>
                     <!-- Индикатор состояния -->
                     <Border Height="3" 
-                    Background="{Binding State, Converter={StaticResource StateToColorConverter}}"
-                    Margin="2"/>
-
-                    <!-- Название (сокращенное) -->
-                    <TextBlock Text="{Binding Name}" 
-                       Foreground="White" 
-                       FontSize="10"
-                       FontWeight="Bold"
-                       HorizontalAlignment="Center"
-                       Margin="5,5"
-                       TextWrapping="Wrap"
-                       TextTrimming="CharacterEllipsis"/>
-
-                    <!-- Иконка существа -->
-                    <Border Height="80" 
-                    Background="#0AFFFFFF" 
-                    Margin="5,0">
-                        <TextBlock Text="{Binding Faction}" 
-                           Foreground="#33FFFFFF"
-                           FontSize="9"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"/>
-                    </Border>
+                        Background="{Binding State, Converter={StaticResource StateToColorConverter}}"
+                        Margin="2"
+                        VerticalAlignment="Top"/>
 
                     <!-- Статистика -->
-                    <Grid Margin="5,5">
+                    <Grid Margin="5" VerticalAlignment="Bottom">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
                         <Border Grid.Column="0" 
-                        Background="#CC3333" 
-                        CornerRadius="3">
+                            Background="#CC3333" 
+                            CornerRadius="3"
+                            Opacity="0.8">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <TextBlock Text="ATK" 
-                                   Foreground="White" 
-                                   FontSize="8"
-                                   VerticalAlignment="Center"/>
+                                       Foreground="White" 
+                                       FontSize="8"
+                                       VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding Attack}" 
-                                   Foreground="White" 
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Margin="5,0,0,0"/>
+                                       Foreground="White" 
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Margin="5,0,0,0"/>
                             </StackPanel>
                         </Border>
 
                         <Border Grid.Column="1" 
-                        Background="#33CC33" 
-                        CornerRadius="3"
-                        Margin="5,0,0,0">
+                            Background="#33CC33" 
+                            CornerRadius="3"
+                            Margin="5,0,0,0"
+                            Opacity="0.8">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <TextBlock Text="HP" 
-                                   Foreground="White" 
-                                   FontSize="8"
-                                   VerticalAlignment="Center"/>
+                                       Foreground="White" 
+                                       FontSize="8"
+                                       VerticalAlignment="Center"/>
                                 <TextBlock Text="{Binding CurrentHealth}" 
-                                   Foreground="White" 
-                                   FontSize="16"
-                                   FontWeight="Bold"
-                                   Margin="5,0,0,0"/>
+                                       Foreground="White" 
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Margin="5,0,0,0"/>
                             </StackPanel>
                         </Border>
                     </Grid>
-
-                    <!-- Состояние -->
-                    <TextBlock Text="{Binding State}" 
-                       Foreground="#AAA"
-                       FontSize="8"
-                       HorizontalAlignment="Center"
-                       Margin="0,5"/>
-                </StackPanel>
+                </Grid>
             </Border>
         </DataTemplate>
     </Window.Resources>
-
     <Viewbox Stretch="Uniform">
         <Grid Width="1920" Height="1080">
             <Grid x:Name="MainGrid">
@@ -585,7 +543,7 @@
                         </Grid>
 
                         <Button x:Name="BtnStartGame" Content="НАЧАТЬ ИГРУ" Style="{StaticResource RFGameButton}" Click="StartGame_Click"/>
-                        <Button x:Name="BtnLoadGame" Content="ЗАГРУЗИТЬ ИГРУ" Style="{StaticResource RFGameButton}" Click="BackToMenu_Click"/>
+                        <Button x:Name="BtnLoadGame" Content="ЗАГРУЗИТЬ ИГРУ" Style="{StaticResource RFGameButton}" Click="BtnLoadGame_Click"/>
                         <Button x:Name="BtnExit" Content="ВЫХОД" Style="{StaticResource RFGameButton}" Click="Exit_Click"/>
                     </StackPanel>
 
@@ -1177,6 +1135,75 @@
                                     Width="200" 
                                     Height="50" 
                                     Click="BtnLoadGameStart_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+                <!-- ЭКРАН КОНЦА ИГРЫ -->
+                <Grid x:Name="GameOverScreen" Background="#CC050505" Visibility="Collapsed">
+                    <Border BorderBrush="{StaticResource NeonBrush}" 
+            BorderThickness="1" 
+            Background="#0A0E14" 
+            Width="700" 
+            Height="500" 
+            CornerRadius="5">
+                        <Grid Margin="30">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock x:Name="GameOverTitle"
+                       Text="ПОБЕДА!" 
+                       Foreground="{StaticResource NeonBrush}" 
+                       FontSize="48" 
+                       FontWeight="Bold" 
+                       HorizontalAlignment="Center" 
+                       Margin="0,0,0,30"/>
+
+                            <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                <TextBlock x:Name="WinnerText"
+                           Text="Игрок 1 побеждает!" 
+                           Foreground="White" 
+                           FontSize="28" 
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,20"/>
+
+                                <TextBlock x:Name="GameStats"
+                           Text="Ходов: 15\nВремя: 25:30" 
+                           Foreground="#AAA" 
+                           FontSize="16" 
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           Margin="0,0,0,30"/>
+
+                                <Border Background="#1A222D" 
+                        Padding="15" 
+                        CornerRadius="5" 
+                        Margin="0,0,0,20">
+                                    <TextBlock x:Name="GameSummary"
+                               Text="Поздравляем с победой!" 
+                               Foreground="#CCC" 
+                               FontSize="14" 
+                               TextWrapping="Wrap"/>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Content="НОВАЯ ИГРА" 
+                        Style="{StaticResource RFGameButton}" 
+                        Width="200" 
+                        Height="50" 
+                        Margin="10,0"
+                        Click="NewGameAfterEnd_Click"/>
+
+                                <Button Content="В МЕНЮ" 
+                        Style="{StaticResource RFGameButton}" 
+                        Width="200" 
+                        Height="50" 
+                        Margin="10,0"
+                        Click="BackToMenu_Click"/>
                             </StackPanel>
                         </Grid>
                     </Border>

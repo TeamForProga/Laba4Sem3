@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Windows;
 
@@ -11,6 +12,7 @@ namespace RFOnline_CCG
     public class GameViewModel : INotifyPropertyChanged
     {
         private GameEngine _gameEngine;
+        private JsonGameStateService _gameStateService;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -24,6 +26,8 @@ namespace RFOnline_CCG
                 UpdateAll();
             }
         }
+
+        public JsonGameStateService GameStateService => _gameStateService ??= new JsonGameStateService();
 
         // Коллекции для привязки
         public ObservableCollection<IArtifactCard> PlayerArtifacts { get; } = new ObservableCollection<IArtifactCard>();
@@ -79,7 +83,14 @@ namespace RFOnline_CCG
         public ICreatureCard SelectedPlayerCreature { get; set; }
         public ICreatureCard SelectedOpponentCreature { get; set; }
 
-        public GameViewModel() { }
+        public GameViewModel()
+        {
+            // Создаем папку для сохранений при запуске
+            if (!Directory.Exists("Saves"))
+            {
+                Directory.CreateDirectory("Saves");
+            }
+        }
 
         public void StartNewGame(string player1Name, Faction player1Faction,
                                string player2Name, Faction player2Faction)
@@ -89,35 +100,117 @@ namespace RFOnline_CCG
             UpdateAll();
         }
 
-        public void LoadGame(string saveFile)
+        public bool LoadGame(string saveFilePath)
         {
             try
             {
-                var service = new JsonGameStateService();
-                var state = service.LoadGameState(saveFile);
+                if (string.IsNullOrEmpty(saveFilePath) || !File.Exists(saveFilePath))
+                {
+                    MessageBox.Show($"Файл сохранения не найден: {saveFilePath}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
 
-                GameEngine = new GameEngine(state.Player1Name, state.Player1Faction,
-                                          state.Player2Name, state.Player2Faction);
-                GameEngine.LoadFromState(state, service);
+                // Загружаем состояние
+                var gameState = GameStateService.LoadGameState(saveFilePath);
+
+                // Создаем новую игру на основе загруженного состояния
+                GameEngine = new GameEngine(
+                    gameState.Player1Name,
+                    gameState.Player1Faction,
+                    gameState.Player2Name,
+                    gameState.Player2Faction);
+
+                // Загружаем состояние в движок
+                GameEngine.LoadFromState(gameState, GameStateService);
+
                 UpdateAll();
+                return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка загрузки: {ex.Message}");
+                MessageBox.Show($"Ошибка загрузки игры:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
             }
         }
 
-        public void SaveGame(string fileName)
+        public List<SaveGameInfo> GetSaveGames()
         {
+            var saveGames = new List<SaveGameInfo>();
+
             try
             {
-                var state = GameEngine.CreateGameState();
-                var service = new JsonGameStateService();
-                service.SaveGameState($"Saves/{fileName}.json", state);
+                if (!Directory.Exists("Saves"))
+                    return saveGames;
+
+                var saveFiles = Directory.GetFiles("Saves", "*.json");
+
+                foreach (var filePath in saveFiles)
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(filePath);
+                        var gameState = GameStateService.LoadGameState(filePath);
+
+                        saveGames.Add(new SaveGameInfo
+                        {
+                            FilePath = filePath,
+                            SaveName = Path.GetFileNameWithoutExtension(filePath),
+                            Date = fileInfo.LastWriteTime,
+                            Player1Name = gameState.Player1Name,
+                            Player2Name = gameState.Player2Name,
+                            Player1Faction = gameState.Player1Faction,
+                            Player2Faction = gameState.Player2Faction,
+                            CurrentTurn = gameState.CurrentTurn,
+                            SaveDate = gameState.SaveDate
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        // Пропускаем поврежденные файлы
+                        Console.WriteLine($"Ошибка чтения файла {filePath}: {ex.Message}");
+                    }
+                }
+
+                // Сортируем по дате (сначала новые)
+                return saveGames.OrderByDescending(s => s.Date).ToList();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ошибка сохранения: {ex.Message}");
+                MessageBox.Show($"Ошибка получения списка сохранений:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return saveGames;
+            }
+        }
+
+        public void SaveGame(string saveName)
+        {
+            try
+            {
+                if (GameEngine == null)
+                {
+                    MessageBox.Show("Игра не запущена!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(saveName))
+                {
+                    MessageBox.Show("Введите имя сохранения!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Убираем запрещенные символы
+                foreach (var c in Path.GetInvalidFileNameChars())
+                {
+                    saveName = saveName.Replace(c.ToString(), "");
+                }
+
+                string fileName = $"Saves/{saveName}.json";
+                var gameState = GameEngine.CreateGameState();
+                GameStateService.SaveGameState(fileName, gameState);
+
+              }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка сохранения:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -147,18 +240,20 @@ namespace RFOnline_CCG
             return success;
         }
 
-
         public void EndTurn()
         {
-            GameEngine.EndTurn();
-            UpdateAll();
+            if (GameEngine != null)
+            {
+                GameEngine.EndTurn();
+                UpdateAll();
+            }
         }
+
         public bool CanAttackPlayerDirectly()
         {
             if (GameEngine == null || SelectedPlayerCreature == null)
                 return false;
 
-            // Проверяем, что у противника нет живых существ
             return !GameEngine.OpponentPlayer.Field.Any(c => c.IsAlive);
         }
 
@@ -199,7 +294,10 @@ namespace RFOnline_CCG
             UpdateCollection(PlayerArtifacts, GameEngine.CurrentPlayer.Artifacts);
             UpdateCollection(PlayerField, GameEngine.CurrentPlayer.Field);
             UpdateCollection(OpponentField, GameEngine.OpponentPlayer.Field);
-            UpdateCollection(GameLog, GameEngine.GameLog);
+
+            // Лог - только последние 50 сообщений
+            var recentLogs = GameEngine.GameLog.TakeLast(50).ToList();
+            UpdateCollection(GameLog, recentLogs);
 
             // Сбрасываем выбранные карты
             SelectedHandCard = null;
@@ -211,19 +309,38 @@ namespace RFOnline_CCG
 
         private void UpdateCollection<T>(ObservableCollection<T> target, IEnumerable<T> source)
         {
-            target.Clear();
-            if (source != null)
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                foreach (var item in source)
+                target.Clear();
+                if (source != null)
                 {
-                    target.Add(item);
+                    foreach (var item in source)
+                    {
+                        target.Add(item);
+                    }
                 }
-            }
+            });
         }
 
         public void OnPropertyChanged(string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    public class SaveGameInfo
+    {
+        public string FilePath { get; set; }
+        public string SaveName { get; set; }
+        public DateTime Date { get; set; }
+        public string Player1Name { get; set; }
+        public string Player2Name { get; set; }
+        public Faction Player1Faction { get; set; }
+        public Faction Player2Faction { get; set; }
+        public int CurrentTurn { get; set; }
+        public DateTime SaveDate { get; set; }
+
+        public string Factions => $"{Player1Faction} vs {Player2Faction}";
+        public string Players => $"{Player1Name} vs {Player2Name}";
     }
 }
