@@ -9,24 +9,52 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Images\Cards\Creatures\Accretia\Боевой_киборг_подавления.png" />
-    <None Remove="Images\Cards\Creatures\Accretia\Осадный_киборг.png" />
-    <None Remove="Images\Cards\Creatures\Accretia\Штурмовой_юнит_Аккретии.png" />
+    <Compile Remove="Images\Cards\Cora\**" />
+    <Compile Remove="Images\Cards\Neutral\**" />
+    <EmbeddedResource Remove="Images\Cards\Cora\**" />
+    <EmbeddedResource Remove="Images\Cards\Neutral\**" />
+    <None Remove="Images\Cards\Cora\**" />
+    <None Remove="Images\Cards\Neutral\**" />
+    <Page Remove="Images\Cards\Cora\**" />
+    <Page Remove="Images\Cards\Neutral\**" />
+  </ItemGroup>
+	<ItemGroup>
+		<!-- Все изображения карт -->
+		<Content Include="Images\**\*.jpg">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Images\Cards\Creatures\Accretia\Боевой_киборг_подавления.JPG" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Lab3sem3\RFCardGame\RFCardGame.csproj" />
+    <Content Include="Images\Cards\Creatures\Accretia\Боевой_киборг_подавления.JPG">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Images\Cards\Spells\" />
-    <Folder Include="Images\Factions\" />
+    <Content Update="Images\Cards\Spells\Accretia\Протокол_перегрузки.JPG">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Images\Cards\Spells\Bellato\Тактический_анализ.JPG">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Images\Cards\Spells\Bellato\Орбитальный_удар.JPG">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Images\Cards\Spells\Cora\Святое_восстановление.JPG">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Update="Images\Cards\Spells\Cora\Темный_взрыв.JPG">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Images\Cards\Creatures\Accretia\Боевой_киборг_подавления.png" />
-    <Resource Include="Images\Cards\Creatures\Accretia\Осадный_киборг.png" />
-    <Resource Include="Images\Cards\Creatures\Accretia\Штурмовой_юнит_Аккретии.png" />
+    <Page Include="App.xaml" />
   </ItemGroup>
 
 </Project>
