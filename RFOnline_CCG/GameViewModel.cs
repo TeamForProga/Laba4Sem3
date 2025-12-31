@@ -16,6 +16,7 @@ namespace RFOnline_CCG
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        // Основной игровой движок
         public GameEngine GameEngine
         {
             get => _gameEngine;
@@ -27,20 +28,23 @@ namespace RFOnline_CCG
             }
         }
 
+        // Сервис для сохранения/загрузки состояния игры
         public JsonGameStateService GameStateService => _gameStateService ??= new JsonGameStateService();
 
-        // Коллекции для привязки
+        // Коллекции для привязки данных к UI
         public ObservableCollection<IArtifactCard> PlayerArtifacts { get; } = new ObservableCollection<IArtifactCard>();
         public ObservableCollection<ICard> PlayerHand { get; } = new ObservableCollection<ICard>();
         public ObservableCollection<ICreatureCard> PlayerField { get; } = new ObservableCollection<ICreatureCard>();
         public ObservableCollection<ICreatureCard> OpponentField { get; } = new ObservableCollection<ICreatureCard>();
         public ObservableCollection<string> GameLog { get; } = new ObservableCollection<string>();
 
-        // Свойства для привязки
+        // Свойства текущего игрока для привязки
         public string PlayerName { get; set; }
         public int PlayerHealth { get; set; }
         public int PlayerEnergy { get; set; }
         public int PlayerMaxEnergy { get; set; }
+
+        // Информация об атаке для отображения в UI
         public string AttackInfo
         {
             get
@@ -55,6 +59,7 @@ namespace RFOnline_CCG
             }
         }
 
+        // Информация о возможности прямой атаки
         public string DirectAttackInfo
         {
             get
@@ -68,30 +73,35 @@ namespace RFOnline_CCG
                 return $"Существ противника: {GameEngine.OpponentPlayer.GetAliveCreatureCount()}";
             }
         }
+
+        // Количество карт в колоде игрока
         public int PlayerDeckCount { get; set; }
 
+        // Свойства противника для привязки
         public string OpponentName { get; set; }
         public int OpponentHealth { get; set; }
         public int OpponentEnergy { get; set; }
         public int OpponentDeckCount { get; set; }
 
+        // Информация о текущем ходе
         public int CurrentTurn { get; set; }
         public string TurnInfo => $"Ход {CurrentTurn} • {PlayerName}";
 
-        // Выбранные карты
+        // Выбранные карты для взаимодействия
         public ICard SelectedHandCard { get; set; }
         public ICreatureCard SelectedPlayerCreature { get; set; }
         public ICreatureCard SelectedOpponentCreature { get; set; }
 
         public GameViewModel()
         {
-            // Создаем папку для сохранений при запуске
+            // Создание папки для сохранений при инициализации ViewModel
             if (!Directory.Exists("Saves"))
             {
                 Directory.CreateDirectory("Saves");
             }
         }
 
+        // Создание новой игры с заданными параметрами
         public void StartNewGame(string player1Name, Faction player1Faction,
                                string player2Name, Faction player2Faction)
         {
@@ -100,6 +110,7 @@ namespace RFOnline_CCG
             UpdateAll();
         }
 
+        // Загрузка игры из файла сохранения
         public bool LoadGame(string saveFilePath)
         {
             try
@@ -110,17 +121,17 @@ namespace RFOnline_CCG
                     return false;
                 }
 
-                // Загружаем состояние
+                // Загрузка состояния игры из файла
                 var gameState = GameStateService.LoadGameState(saveFilePath);
 
-                // Создаем новую игру на основе загруженного состояния
+                // Создание нового игрового движка с параметрами из сохранения
                 GameEngine = new GameEngine(
                     gameState.Player1Name,
                     gameState.Player1Faction,
                     gameState.Player2Name,
                     gameState.Player2Faction);
 
-                // Загружаем состояние в движок
+                // Загрузка полного состояния в движок
                 GameEngine.LoadFromState(gameState, GameStateService);
 
                 UpdateAll();
@@ -133,6 +144,7 @@ namespace RFOnline_CCG
             }
         }
 
+        // Получение списка доступных сохранений
         public List<SaveGameInfo> GetSaveGames()
         {
             var saveGames = new List<SaveGameInfo>();
@@ -166,12 +178,12 @@ namespace RFOnline_CCG
                     }
                     catch (Exception ex)
                     {
-                        // Пропускаем поврежденные файлы
+                        // Пропуск поврежденных файлов сохранений
                         Console.WriteLine($"Ошибка чтения файла {filePath}: {ex.Message}");
                     }
                 }
 
-                // Сортируем по дате (сначала новые)
+                // Сортировка по дате (сначала новые сохранения)
                 return saveGames.OrderByDescending(s => s.Date).ToList();
             }
             catch (Exception ex)
@@ -181,6 +193,7 @@ namespace RFOnline_CCG
             }
         }
 
+        // Сохранение текущей игры
         public void SaveGame(string saveName)
         {
             try
@@ -197,7 +210,7 @@ namespace RFOnline_CCG
                     return;
                 }
 
-                // Убираем запрещенные символы
+                // Удаление запрещенных символов из имени файла
                 foreach (var c in Path.GetInvalidFileNameChars())
                 {
                     saveName = saveName.Replace(c.ToString(), "");
@@ -207,14 +220,14 @@ namespace RFOnline_CCG
                 var gameState = GameEngine.CreateGameState();
                 GameStateService.SaveGameState(fileName, gameState);
 
-              }
+            }
             catch (Exception ex)
             {
                 MessageBox.Show($"Ошибка сохранения:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        // Игровые действия
+        // Розыгрыш выбранной карты
         public void PlaySelectedCard()
         {
             if (SelectedHandCard == null) return;
@@ -226,11 +239,12 @@ namespace RFOnline_CCG
             }
             else if (SelectedHandCard is ISpellCard spell)
             {
-                // TODO: Реализовать выбор цели
+                // TODO: Реализовать выбор цели для заклинаний
                 MessageBox.Show("Выберите цель для заклинания");
             }
         }
 
+        // Атака выбранным существом выбранной цели
         public bool AttackWithSelected()
         {
             if (SelectedPlayerCreature == null || SelectedOpponentCreature == null) return false;
@@ -240,6 +254,7 @@ namespace RFOnline_CCG
             return success;
         }
 
+        // Завершение текущего хода
         public void EndTurn()
         {
             if (GameEngine != null)
@@ -249,6 +264,7 @@ namespace RFOnline_CCG
             }
         }
 
+        // Проверка возможности прямой атаки игрока
         public bool CanAttackPlayerDirectly()
         {
             if (GameEngine == null || SelectedPlayerCreature == null)
@@ -257,6 +273,7 @@ namespace RFOnline_CCG
             return !GameEngine.OpponentPlayer.Field.Any(c => c.IsAlive);
         }
 
+        // Выполнение прямой атаки игрока
         public void AttackPlayerDirectly()
         {
             if (!CanAttackPlayerDirectly() || SelectedPlayerCreature == null)
@@ -271,17 +288,19 @@ namespace RFOnline_CCG
             }
         }
 
+        // Полное обновление всех данных ViewModel
         public void UpdateAll()
         {
             if (GameEngine == null) return;
 
-            // Обновляем данные игроков
+            // Обновление данных текущего игрока
             PlayerName = GameEngine.CurrentPlayer.Name;
             PlayerHealth = GameEngine.CurrentPlayer.Health;
             PlayerEnergy = GameEngine.CurrentPlayer.Energy;
             PlayerMaxEnergy = GameEngine.CurrentPlayer.MaxEnergy;
             PlayerDeckCount = GameEngine.CurrentPlayer.Deck?.Count ?? 0;
 
+            // Обновление данных противника
             OpponentName = GameEngine.OpponentPlayer.Name;
             OpponentHealth = GameEngine.OpponentPlayer.Health;
             OpponentEnergy = GameEngine.OpponentPlayer.Energy;
@@ -289,24 +308,26 @@ namespace RFOnline_CCG
 
             CurrentTurn = GameEngine.CurrentTurn;
 
-            // Обновляем коллекции
+            // Обновление коллекций для привязки
             UpdateCollection(PlayerHand, GameEngine.CurrentPlayer.Hand);
             UpdateCollection(PlayerArtifacts, GameEngine.CurrentPlayer.Artifacts);
             UpdateCollection(PlayerField, GameEngine.CurrentPlayer.Field);
             UpdateCollection(OpponentField, GameEngine.OpponentPlayer.Field);
 
-            // Лог - только последние 50 сообщений
+            // Обновление лога игры (только последние 50 сообщений)
             var recentLogs = GameEngine.GameLog.TakeLast(50).ToList();
             UpdateCollection(GameLog, recentLogs);
 
-            // Сбрасываем выбранные карты
+            // Сброс выбранных карт после обновления
             SelectedHandCard = null;
             SelectedPlayerCreature = null;
             SelectedOpponentCreature = null;
 
+            // Уведомление об изменении всех свойств
             OnPropertyChanged(null);
         }
 
+        // Синхронизация ObservableCollection с исходными данными
         private void UpdateCollection<T>(ObservableCollection<T> target, IEnumerable<T> source)
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -322,12 +343,14 @@ namespace RFOnline_CCG
             });
         }
 
+        // Вызов события изменения свойства
         public void OnPropertyChanged(string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 
+    // Класс для хранения информации о сохранении игры
     public class SaveGameInfo
     {
         public string FilePath { get; set; }
@@ -340,6 +363,7 @@ namespace RFOnline_CCG
         public int CurrentTurn { get; set; }
         public DateTime SaveDate { get; set; }
 
+        // Форматированные свойства для отображения
         public string Factions => $"{Player1Faction} vs {Player2Faction}";
         public string Players => $"{Player1Name} vs {Player2Name}";
     }

@@ -7,6 +7,7 @@ namespace RFOnline_CCG
 {
     public partial class SaveGameDialog : Window
     {
+        // Имя сохранения, введенное пользователем
         public string SaveName { get; private set; }
 
         public SaveGameDialog()
@@ -17,6 +18,7 @@ namespace RFOnline_CCG
             SaveNameTextBox.SelectAll();
         }
 
+        // Загрузка списка существующих сохранений
         private void LoadExistingSaves()
         {
             try
@@ -38,6 +40,7 @@ namespace RFOnline_CCG
             }
         }
 
+        // Обработка выбора сохранения из списка
         private void ExistingSavesList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (ExistingSavesList.SelectedItem is string selectedSave)
@@ -46,6 +49,7 @@ namespace RFOnline_CCG
             }
         }
 
+        // Сохранение игры с указанным именем
         private void Save_Click(object sender, RoutedEventArgs e)
         {
             SaveName = SaveNameTextBox.Text.Trim();
@@ -56,7 +60,7 @@ namespace RFOnline_CCG
                 return;
             }
 
-            // Проверяем на наличие запрещенных символов
+            // Проверка на наличие запрещенных символов в имени файла
             if (SaveName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
             {
                 MessageBox.Show("Имя сохранения содержит недопустимые символы!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -67,6 +71,7 @@ namespace RFOnline_CCG
             Close();
         }
 
+        // Отмена сохранения
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
             DialogResult = false;

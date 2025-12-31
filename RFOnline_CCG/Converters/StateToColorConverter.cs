@@ -1,5 +1,4 @@
-﻿// StateToColorConverter.cs
-using System;
+﻿using System;
 using System.Globalization;
 using System.Windows.Data;
 using System.Windows.Media;
@@ -11,6 +10,7 @@ namespace RFOnline_CCG
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
+            // Преобразует CreatureState в соответствующий цвет для отображения
             if (value is CreatureState state)
             {
                 return state switch
