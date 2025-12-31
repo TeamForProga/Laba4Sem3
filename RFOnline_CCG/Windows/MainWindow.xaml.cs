@@ -22,13 +22,14 @@ namespace RFOnline_CCG
             DataContext = _viewModel;
         }
 
-        // ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ
+        // Переключение между экранами главного меню
         private void StartGame_Click(object sender, RoutedEventArgs e)
         {
             MainMenuUI.Visibility = Visibility.Collapsed;
             NewGameScreen.Visibility = Visibility.Visible;
         }
 
+        // Возврат к главному меню с любого экрана
         private void BackToMenu_Click(object sender, RoutedEventArgs e)
         {
             if (GameBoardUI.Visibility == Visibility.Visible)
@@ -47,20 +48,23 @@ namespace RFOnline_CCG
             MainMenuUI.Visibility = Visibility.Visible;
         }
 
+        // Выход из приложения
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
         }
 
-        // НАЧАТЬ НОВУЮ ИГРУ
+        // Создание новой игры с выбранными параметрами
         private void BtnStartBoardGame_Click(object sender, RoutedEventArgs e)
         {
+            // Определение фракций для игроков
             Faction player1Faction = GetSelectedFactionFromRadioButtons(
                 Player1Accretia, Player1Bellato, Player1Cora);
 
             Faction player2Faction = GetSelectedFactionFromRadioButtons(
                 Player2Accretia, Player2Bellato, Player2Cora);
 
+            // Получение имен игроков (используем значения по умолчанию, если поле пустое)
             string player1Name = Player1NameBox.Text.Trim();
             if (string.IsNullOrWhiteSpace(player1Name))
                 player1Name = "Игрок 1";
@@ -69,12 +73,15 @@ namespace RFOnline_CCG
             if (string.IsNullOrWhiteSpace(player2Name))
                 player2Name = "Игрок 2";
 
+            // Запуск новой игры через ViewModel
             _viewModel.StartNewGame(player1Name, player1Faction, player2Name, player2Faction);
 
+            // Переключение на игровое поле
             NewGameScreen.Visibility = Visibility.Collapsed;
             GameBoardUI.Visibility = Visibility.Visible;
         }
 
+        // Определение выбранной фракции из RadioButton элементов
         private Faction GetSelectedFactionFromRadioButtons(RadioButton accretia, RadioButton bellato, RadioButton cora)
         {
             if (accretia.IsChecked == true)
@@ -87,27 +94,28 @@ namespace RFOnline_CCG
             return Faction.Neutral;
         }
 
-        // ЗАГРУЗИТЬ ИГРУ - клик по кнопке "Загрузить игру"
+        // Открытие экрана загрузки игры
         private void BtnLoadGame_Click(object sender, RoutedEventArgs e)
         {
             MainMenuUI.Visibility = Visibility.Collapsed;
             LoadGameScreen.Visibility = Visibility.Visible;
-            
-            // Загружаем список сохранений
+
+            // Загружаем список доступных сохранений
             LoadSaveGamesList();
         }
 
+        // Загрузка списка файлов сохранений в ListBox
         private void LoadSaveGamesList()
         {
             try
             {
                 SaveGamesList.Items.Clear();
                 var saveGames = _viewModel.GetSaveGames();
-                
+
                 if (!saveGames.Any())
                 {
-                    // Показываем заглушку, если сохранений нет
-                    SaveGamesList.Items.Add(new 
+                    // Отображение сообщения, если сохранений нет
+                    SaveGamesList.Items.Add(new
                     {
                         SaveName = "Сохранений не найдено",
                         Date = "",
@@ -119,7 +127,7 @@ namespace RFOnline_CCG
 
                 foreach (var save in saveGames)
                 {
-                    SaveGamesList.Items.Add(new 
+                    SaveGamesList.Items.Add(new
                     {
                         SaveName = save.SaveName,
                         Date = save.Date.ToString("dd.MM.yyyy HH:mm"),
@@ -136,6 +144,7 @@ namespace RFOnline_CCG
             }
         }
 
+        // Обработка выбора сохранения из списка
         private void SaveGame_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (SaveGamesList.SelectedItem != null)
@@ -143,19 +152,20 @@ namespace RFOnline_CCG
                 dynamic selectedItem = SaveGamesList.SelectedItem;
                 if (selectedItem.FilePath is string filePath && !string.IsNullOrEmpty(filePath))
                 {
-                    // Проверяем, что это не заглушка
+                    // Проверка, что это не заглушка "Сохранений не найдено"
                     if (selectedItem.SaveName == "Сохранений не найдено")
                     {
                         SaveGamesList.SelectedItem = null;
                         return;
                     }
-                    
-                    // Сохраняем путь к выбранному файлу
+
+                    // Сохранение пути к выбранному файлу в Tag элемента
                     SaveGamesList.Tag = filePath;
                 }
             }
         }
 
+        // Загрузка выбранного сохранения
         private void BtnLoadGameStart_Click(object sender, RoutedEventArgs e)
         {
             if (SaveGamesList.Tag is string selectedFilePath && File.Exists(selectedFilePath))
@@ -174,8 +184,7 @@ namespace RFOnline_CCG
             }
         }
 
-        
-        // СОХРАНИТЬ ИГРУ
+        // Сохранение текущей игры
         private void BtnSaveGame_Click(object sender, RoutedEventArgs e)
         {
             if (_viewModel.GameEngine == null)
@@ -192,24 +201,26 @@ namespace RFOnline_CCG
             }
         }
 
-        // Кнопки отмены
+        // Отмена создания новой игры
         private void BtnNewGameCancel_Click(object sender, RoutedEventArgs e)
         {
             NewGameScreen.Visibility = Visibility.Collapsed;
             MainMenuUI.Visibility = Visibility.Visible;
         }
 
+        // Отмена загрузки игры
         private void BtnLoadGameCancel_Click(object sender, RoutedEventArgs e)
         {
             LoadGameScreen.Visibility = Visibility.Collapsed;
             MainMenuUI.Visibility = Visibility.Visible;
         }
-        // ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ
+
+        // Отображение экрана завершения игры
         private void ShowGameOver()
         {
             if (_viewModel.GameEngine?.Winner == null) return;
 
-            // Обновляем текст
+            // Обновление информации о победителе
             GameOverTitle.Text = "ПОБЕДА!";
             WinnerText.Text = $"{_viewModel.GameEngine.Winner.Name} побеждает!";
             GameStats.Text = $"Ходов: {_viewModel.GameEngine.CurrentTurn}\n" +
@@ -217,30 +228,32 @@ namespace RFOnline_CCG
 
             GameSummary.Text = $"Игра завершена. {_viewModel.GameEngine.Winner.Name} показал отличный результат!";
 
-            // Показываем экран
+            // Переключение на экран завершения игры
             GameBoardUI.Visibility = Visibility.Collapsed;
             GameOverScreen.Visibility = Visibility.Visible;
         }
 
+        // Начало новой игры после завершения предыдущей
         private void NewGameAfterEnd_Click(object sender, RoutedEventArgs e)
         {
             GameOverScreen.Visibility = Visibility.Collapsed;
             NewGameScreen.Visibility = Visibility.Visible;
         }
 
-        // В BtnEndTurn_Click добавьте проверку окончания игры
+        // Завершение текущего хода с проверкой окончания игры
         private void BtnEndTurn_Click(object sender, RoutedEventArgs e)
         {
             _viewModel.EndTurn();
             ShowGameMessage("Ход завершен");
 
-            // Проверяем конец игры
+            // Проверка условий завершения игры
             if (_viewModel.GameEngine?.IsGameOver == true)
             {
                 ShowGameOver();
             }
         }
-        
+
+        // Обработка клика по карте в руке для выбора и начала перетаскивания
         private void Card_MouseDown(object sender, MouseButtonEventArgs e)
         {
             var border = sender as Border;
@@ -249,21 +262,21 @@ namespace RFOnline_CCG
                 // Сброс подсветки всех карт
                 ResetAllCardHighlights();
 
-                // Выбираем карту
+                // Выбор карты в ViewModel
                 _viewModel.SelectedHandCard = gameCard;
 
-                // Подсвечиваем выбранную карту
+                // Подсветка выбранной карты
                 HighlightCard(border, true);
 
-                // Принудительно обновляем привязки
+                // Принудительное обновление привязок
                 _viewModel.OnPropertyChanged(nameof(_viewModel.SelectedHandCard));
 
-                // Продолжаем перетаскивание
+                // Начало перетаскивания
                 _isDragging = true;
                 _clickPosition = e.GetPosition(this);
                 border.CaptureMouse();
 
-                // Создаем клон для перетаскивания
+                // Создание визуального клона для перетаскивания
                 var clone = new Border();
                 clone.Width = border.Width * 1.2;
                 clone.Height = border.Height * 1.2;
@@ -279,7 +292,7 @@ namespace RFOnline_CCG
                     Opacity = 0.8
                 };
 
-                // Добавляем контент
+                // Добавление текста на клон
                 var content = new StackPanel();
                 var text = new TextBlock();
                 text.Text = gameCard.Name;
@@ -292,7 +305,7 @@ namespace RFOnline_CCG
                 content.Children.Add(text);
                 clone.Child = content;
 
-                // Добавляем на Canvas
+                // Добавление клона на Canvas
                 var canvas = new Canvas { ClipToBounds = false };
                 canvas.Children.Add(clone);
                 Canvas.SetLeft(clone, _clickPosition.X - clone.Width / 2);
@@ -307,11 +320,12 @@ namespace RFOnline_CCG
                 MainGrid.Children.Add(overlay);
                 Panel.SetZIndex(overlay, 9999);
 
+                // Сохранение ссылок на карту и overlay в Tag
                 border.Tag = new object[] { gameCard, overlay };
             }
         }
 
-        // Метод для подсветки карты
+        // Подсветка карты в зависимости от состояния выбора
         private void HighlightCard(Border cardBorder, bool isSelected)
         {
             if (isSelected)
@@ -340,10 +354,9 @@ namespace RFOnline_CCG
             }
         }
 
-        // Метод для сброса подсветки всех карт
+        // Сброс подсветки всех карт в руке
         private void ResetAllCardHighlights()
         {
-            // Сброс подсветки карт в руке
             if (PlayerHandItems != null)
             {
                 foreach (var item in PlayerHandItems.Items)
@@ -359,12 +372,9 @@ namespace RFOnline_CCG
                     }
                 }
             }
-
-            // Сброс подсветки существ
-            // (добавьте аналогичный код для полей существ)
         }
 
-        // Вспомогательный метод для поиска дочерних элементов
+        // Рекурсивный поиск дочернего элемента определенного типа
         private T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         {
             if (parent == null) return null;
@@ -382,11 +392,8 @@ namespace RFOnline_CCG
 
             return null;
         }
-        // Метод для подсветки карты
 
-        // Метод для сброса подсветки всех карт
-
-        // Вспомогательный метод для поиска дочерних элементов
+        // Обработка клика по существу для выбора цели
         private void Creature_MouseDown(object sender, MouseButtonEventArgs e)
         {
             var border = sender as Border;
@@ -395,6 +402,7 @@ namespace RFOnline_CCG
                 // Сброс подсветки всех существ
                 ResetAllCreatureHighlights();
 
+                // Определение принадлежности существа
                 bool isPlayerCreature = _viewModel.PlayerField.Contains(gameCreature);
                 bool isOpponentCreature = _viewModel.OpponentField.Contains(gameCreature);
 
@@ -403,7 +411,7 @@ namespace RFOnline_CCG
                     _viewModel.SelectedPlayerCreature = gameCreature;
                     HighlightCreature(border, "Cyan");
 
-                    // Проверяем возможность прямой атаки
+                    // Проверка возможности прямой атаки игрока
                     if (_viewModel.GameEngine.OpponentPlayer.GetAliveCreatureCount() == 0)
                     {
                         ShowGameMessage($"Выбрано: {gameCreature.Name} ✓ Можно атаковать игрока!");
@@ -420,11 +428,13 @@ namespace RFOnline_CCG
                     ShowGameMessage($"Цель: {gameCreature.Name}");
                 }
 
+                // Обновление привязок
                 _viewModel.OnPropertyChanged(nameof(_viewModel.SelectedPlayerCreature));
                 _viewModel.OnPropertyChanged(nameof(_viewModel.SelectedOpponentCreature));
             }
         }
-        // Метод для подсветки существа
+
+        // Подсветка существа в зависимости от принадлежности
         private void HighlightCreature(Border creatureBorder, string color)
         {
             creatureBorder.BorderThickness = new Thickness(3);
@@ -452,13 +462,13 @@ namespace RFOnline_CCG
             }
         }
 
-        // Метод для сброса подсветки существ
+        // Сброс подсветки всех существ (заглушка для реализации)
         private void ResetAllCreatureHighlights()
         {
-            // Реализация аналогична ResetAllCardHighlights
-            // Нужно пройти по всем существам на полях и сбросить их подсветку
+            // TODO: Реализовать сброс подсветки существ на полях
         }
-        // Добавьте этот метод для сброса выбора
+
+        // Очистка всех выбранных элементов в ViewModel
         public void ClearSelection()
         {
             _viewModel.SelectedHandCard = null;
@@ -469,6 +479,8 @@ namespace RFOnline_CCG
             _viewModel.OnPropertyChanged(nameof(_viewModel.SelectedPlayerCreature));
             _viewModel.OnPropertyChanged(nameof(_viewModel.SelectedOpponentCreature));
         }
+
+        // Обработка движения мыши при перетаскивании карты
         private void Card_MouseMove(object sender, MouseEventArgs e)
         {
             if (!_isDragging) return;
@@ -483,12 +495,13 @@ namespace RFOnline_CCG
 
                 if (clone != null)
                 {
+                    // Обновление позиции клона карты
                     Canvas.SetLeft(clone, currentPosition.X - 60);
                     Canvas.SetTop(clone, currentPosition.Y - 80);
                 }
             }
 
-            // Визуальная подсветка зоны при наведении
+            // Визуальная подсветка зоны сброса при наведении
             Point dropPoint = e.GetPosition(DropZone);
             bool isOver = dropPoint.X >= 0 && dropPoint.X <= DropZone.ActualWidth &&
                           dropPoint.Y >= 0 && dropPoint.Y <= DropZone.ActualHeight;
@@ -497,11 +510,12 @@ namespace RFOnline_CCG
             DropZone.BorderBrush = isOver ? Brushes.Lime : Brushes.Cyan;
         }
 
+        // Обработка атаки выбранного существа по цели
         private void BtnAttack_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                // Проверяем все возможные null
+                // Проверка инициализации ViewModel
                 if (_viewModel == null)
                 {
                     ShowGameMessage("Ошибка: ViewModel не инициализирована");
@@ -526,7 +540,7 @@ namespace RFOnline_CCG
                     return;
                 }
 
-                // Проверяем, живы ли существа
+                // Проверка состояния существ
                 if (!_viewModel.SelectedPlayerCreature.IsAlive)
                 {
                     ShowGameMessage("Выбранное существо мертво!");
@@ -541,14 +555,14 @@ namespace RFOnline_CCG
                     return;
                 }
 
-                // Проверяем, может ли существо атаковать
+                // Проверка возможности атаки
                 if (_viewModel.SelectedPlayerCreature.State != CreatureState.Active)
                 {
                     ShowGameMessage("Это существо не может атаковать сейчас!");
                     return;
                 }
 
-                // Выполняем атаку
+                // Выполнение атаки через игровой движок
                 bool success = _viewModel.GameEngine.AttackWithCreature(
                     _viewModel.SelectedPlayerCreature,
                     _viewModel.SelectedOpponentCreature);
@@ -557,10 +571,10 @@ namespace RFOnline_CCG
                 {
                     ShowGameMessage($"{_viewModel.SelectedPlayerCreature.Name} атакует {_viewModel.SelectedOpponentCreature.Name}!");
 
-                    // Обновляем интерфейс
+                    // Обновление интерфейса
                     _viewModel.UpdateAll();
 
-                    // Сбрасываем выбор
+                    // Сброс выбора
                     _viewModel.SelectedPlayerCreature = null;
                     _viewModel.SelectedOpponentCreature = null;
                 }
@@ -572,10 +586,10 @@ namespace RFOnline_CCG
             catch (Exception ex)
             {
                 ShowGameMessage($"Ошибка атаки: {ex.Message}");
-                // Для отладки можно добавить
-                // MessageBox.Show(ex.ToString());
             }
         }
+
+        // Обработка кнопки розыгрыша выбранной карты
         private void BtnPlayCard_Click(object sender, RoutedEventArgs e)
         {
             if (_viewModel.SelectedHandCard == null)
@@ -584,7 +598,7 @@ namespace RFOnline_CCG
                 return;
             }
 
-            // Проверяем тип карты
+            // Определение типа карты и соответствующее действие
             if (_viewModel.SelectedHandCard is ICreatureCard creature)
             {
                 ShowGameMessage("Перетащите карту существа на поле");
@@ -599,20 +613,20 @@ namespace RFOnline_CCG
             }
         }
 
-        // Добавим метод для игры артефактом
+        // Розыгрыш карты артефакта
         private void PlayArtifactCard(IArtifactCard artifact)
         {
             try
             {
-                // Простая проверка
+                // Проверка доступной энергии
                 if (artifact.Cost > _viewModel.PlayerEnergy)
                 {
                     ShowGameMessage($"Недостаточно энергии! Нужно: {artifact.Cost}");
                     return;
                 }
 
-                // Проверяем, не слишком ли много артефактов
-                if (_viewModel.PlayerArtifacts.Count >= 5) // Лимит 5 артефактов
+                // Проверка лимита артефактов
+                if (_viewModel.PlayerArtifacts.Count >= 5) // Максимум 5 артефактов
                 {
                     ShowGameMessage("Слишком много артефактов! Максимум 5.");
                     return;
@@ -624,7 +638,7 @@ namespace RFOnline_CCG
                     ShowGameMessage($"Артефакт {artifact.Name} активирован!");
                     _viewModel.UpdateAll();
 
-                    // Сбрасываем выделение карты
+                    // Сброс выделения карты
                     _viewModel.SelectedHandCard = null;
                     _viewModel.OnPropertyChanged(nameof(_viewModel.SelectedHandCard));
                 }
@@ -638,7 +652,8 @@ namespace RFOnline_CCG
                 ShowGameMessage($"Ошибка: {ex.Message}");
             }
         }
-        // Обновим обработчик карт
+
+        // Обработка отпускания кнопки мыши после перетаскивания
         private void Card_MouseUp(object sender, MouseButtonEventArgs e)
         {
             if (!_isDragging) return;
@@ -652,16 +667,18 @@ namespace RFOnline_CCG
                 var gameCard = data[0] as ICard;
                 var overlay = data[1] as Grid;
 
-                // Удаляем overlay с клоном
+                // Удаление overlay с клоном карты
                 if (overlay != null && MainGrid.Children.Contains(overlay))
                 {
                     MainGrid.Children.Remove(overlay);
                 }
 
+                // Проверка, находится ли точка сброса в зоне игры
                 Point dropPoint = e.GetPosition(DropZone);
                 bool isInside = dropPoint.X >= 0 && dropPoint.X <= DropZone.ActualWidth &&
                                 dropPoint.Y >= 0 && dropPoint.Y <= DropZone.ActualHeight;
 
+                // Обработка разных типов карт
                 if (isInside && gameCard is ICreatureCard creature)
                 {
                     bool success = _viewModel.GameEngine.PlayCreatureCard(creature);
@@ -677,30 +694,34 @@ namespace RFOnline_CCG
                 }
                 else if (isInside && gameCard is ISpellCard spell)
                 {
-                    // ВЫЗЫВАЕМ МЕТОД ДЛЯ ЗАКЛИНАНИЙ
+                    // Обработка заклинаний
                     HandleSpellCard(spell);
                 }
                 else if (isInside && gameCard is IArtifactCard artifact)
                 {
-                    // ПРОСТОЙ ВЫЗОВ - артефакт активируется сразу
+                    // Активация артефакта
                     PlayArtifactCard(artifact);
                     _viewModel.UpdateAll();
                 }
 
-                // Восстанавливаем Tag
+                // Восстановление исходного Tag
                 border.Tag = gameCard;
             }
 
+            // Сброс визуального состояния зоны сброса
             DropZone.Opacity = 0.2;
             DropZone.BorderBrush = Brushes.Cyan;
         }
+
+        // Розыгрыш карты заклинания
         private void PlaySpellCard(ISpellCard spell)
         {
+            // Обработка целевых заклинаний
             if (spell.TargetType == "SingleTarget")
             {
-                // Проверяем, выбрано ли существо
                 ICreatureCard target = null;
 
+                // Определение цели в зависимости от типа заклинания
                 if (spell.Subtype == SpellSubtype.Healing || spell.Subtype == SpellSubtype.Buff)
                 {
                     target = _viewModel.SelectedPlayerCreature;
@@ -720,14 +741,14 @@ namespace RFOnline_CCG
                     }
                 }
 
-                // Применяем заклинание
+                // Применение заклинания
                 bool success = _viewModel.GameEngine.PlaySpellCard(spell, target);
                 if (success)
                 {
                     ShowGameMessage($"Заклинание {spell.Name} применено к {target.Name}");
                     _viewModel.UpdateAll();
 
-                    // Сбрасываем выбор
+                    // Сброс выбора
                     _viewModel.SelectedPlayerCreature = null;
                     _viewModel.SelectedOpponentCreature = null;
                     _viewModel.SelectedHandCard = null;
@@ -735,7 +756,7 @@ namespace RFOnline_CCG
             }
             else
             {
-                // Массовые заклинания
+                // Обработка массовых заклинаний
                 bool success = _viewModel.GameEngine.PlaySpellCard(spell, null);
                 if (success)
                 {
@@ -745,6 +766,8 @@ namespace RFOnline_CCG
                 }
             }
         }
+
+        // Обработка прямой атаки игрока
         private void BtnDirectAttack_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -761,14 +784,14 @@ namespace RFOnline_CCG
                     return;
                 }
 
-                // Проверяем, есть ли у противника существа
+                // Проверка наличия существ у противника
                 if (_viewModel.GameEngine.OpponentPlayer.GetAliveCreatureCount() > 0)
                 {
                     ShowGameMessage("Сначала уничтожьте всех существ противника!");
                     return;
                 }
 
-                // Проверяем состояние существа
+                // Проверка состояния существа
                 if (!_viewModel.SelectedPlayerCreature.IsAlive)
                 {
                     ShowGameMessage("Выбранное существо мертво!");
@@ -782,7 +805,7 @@ namespace RFOnline_CCG
                     return;
                 }
 
-                // Выполняем прямую атаку
+                // Выполнение прямой атаки
                 bool success = _viewModel.GameEngine.AttackPlayerDirectly(
                     _viewModel.SelectedPlayerCreature);
 
@@ -803,15 +826,15 @@ namespace RFOnline_CCG
             }
         }
 
-        // Добавим этот метод после PlayArtifactCard
+        // Обработка карты заклинания при перетаскивании
         private void HandleSpellCard(ISpellCard spell)
         {
-            // Простая обработка заклинаний
+            // Обработка целевых заклинаний
             if (spell.TargetType == "SingleTarget")
             {
                 if (spell.Subtype == SpellSubtype.Healing || spell.Subtype == SpellSubtype.Buff)
                 {
-                    // Для лечения/баффа нужно выбрать свое существо
+                    // Заклинания лечения/усиления требуют выбора своего существа
                     if (_viewModel.SelectedPlayerCreature == null)
                     {
                         ShowGameMessage($"Выберите свое существо для {spell.Name}");
@@ -828,7 +851,7 @@ namespace RFOnline_CCG
                 }
                 else if (spell.Subtype == SpellSubtype.Attack)
                 {
-                    // Для атаки нужно выбрать существо противника
+                    // Атакующие заклинания требуют выбора существа противника
                     if (_viewModel.SelectedOpponentCreature == null)
                     {
                         ShowGameMessage($"Выберите существо противника для {spell.Name}");
@@ -846,7 +869,7 @@ namespace RFOnline_CCG
             }
             else
             {
-                // Массовые заклинания (без цели)
+                // Массовые заклинания применяются без цели
                 bool success = _viewModel.GameEngine.PlaySpellCard(spell, null);
                 if (success)
                 {
@@ -855,10 +878,11 @@ namespace RFOnline_CCG
                 }
             }
         }
-        // МЕТОДЫ ДЛЯ ОТОБРАЖЕНИЯ СООБЩЕНИЙ
+
+        // Отображение временного сообщения в центре экрана
         private void ShowGameMessage(string message)
         {
-            // Проверяем, нет ли уже сообщения
+            // Удаление предыдущего сообщения, если оно есть
             foreach (var child in MainGrid.Children)
             {
                 if (child is Grid grid && grid.Name == "MessageOverlay")
@@ -868,7 +892,7 @@ namespace RFOnline_CCG
                 }
             }
 
-            // Создаем overlay
+            // Создание overlay для сообщения
             var overlay = new Grid
             {
                 Name = "MessageOverlay",
@@ -877,7 +901,7 @@ namespace RFOnline_CCG
                 VerticalAlignment = VerticalAlignment.Stretch
             };
 
-            // Создаем сообщение
+            // Создание стилизованного контейнера сообщения
             var messageBox = new Border
             {
                 Background = new SolidColorBrush(Color.FromArgb(230, 16, 26, 36)),
@@ -918,11 +942,11 @@ namespace RFOnline_CCG
             messageBox.Child = stackPanel;
             overlay.Children.Add(messageBox);
 
-            // Добавляем на главную сетку
+            // Добавление сообщения на главную сетку
             MainGrid.Children.Add(overlay);
             Panel.SetZIndex(overlay, 10001);
 
-            // Автоматическое скрытие через 3 секунды
+            // Автоматическое скрытие сообщения через 0.5 секунды
             var timer = new System.Windows.Threading.DispatcherTimer();
             timer.Interval = TimeSpan.FromSeconds(0.5);
             timer.Tick += (s, args) =>
@@ -936,7 +960,7 @@ namespace RFOnline_CCG
             timer.Start();
         }
 
-        // ПРОКРУТКА РУКИ
+        // Прокрутка руки влево
         private void ScrollLeft_Click(object sender, RoutedEventArgs e)
         {
             if (HandScrollViewer != null)
@@ -944,6 +968,8 @@ namespace RFOnline_CCG
                 HandScrollViewer.ScrollToHorizontalOffset(HandScrollViewer.HorizontalOffset - 150);
             }
         }
+
+        // Прокрутка руки вправо
         private void ScrollRight_Click(object sender, RoutedEventArgs e)
         {
             if (HandScrollViewer != null)
@@ -951,6 +977,5 @@ namespace RFOnline_CCG
                 HandScrollViewer.ScrollToHorizontalOffset(HandScrollViewer.HorizontalOffset + 150);
             }
         }
-
     }
 }
